@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SCUT 百步梯学堂课堂回放工具箱
 // @namespace    https://github.com/Breeze1733/scut-bbt-replay-toolkit
-// @version      2.0.0
+// @version      2.0.1
 // @description  华南理工大学百步梯学堂录播课全能工具箱：一键导出高清课件 PPT (PDF)、纯文本字幕 (TXT)、时间轴字幕 (SRT)、原始字幕 (JSON)，支持多视频自动拼接与一键打包 ZIP 下载。
 // @author       Breeze1733
 // @license      MIT
@@ -328,6 +328,83 @@
     setTimeout(() => URL.revokeObjectURL(url), 15000);
   }
 
+  // 检验是否为平台公共站点名/无意义通用词（必须排除，绝不能当作课程名称）
+  function isGenericSiteName(str) {
+    if (!str || typeof str !== 'string') return true;
+    const t = str.trim();
+    if (!t) return true;
+    const blacklist = [
+      '华南理工大学百步梯学堂',
+      '百步梯学堂',
+      '华南理工大学',
+      '百步梯',
+      '百步梯录播',
+      '课堂回放',
+      '华园视频',
+      'livingroom',
+      'livingpage',
+      '首页',
+    ];
+    if (blacklist.includes(t)) return true;
+    if (/^华南理工大学(?:百步梯)?(?:学堂|课堂|录播)?$/i.test(t)) return true;
+    return false;
+  }
+
+  // 从课时标题、网页标题或混合文本中剥离日期与节次，提取出纯粹的课程名
+  function cleanCourseName(str) {
+    if (!str || typeof str !== 'string') return '';
+    let clean = str.trim();
+    if (isGenericSiteName(clean)) return '';
+
+    // 移除常见的浏览器标题后缀如 '- 华南理工大学百步梯学堂', '_百步梯学堂'
+    clean = clean.replace(/[-_|\\s]+华南理工大学(?:百步梯)?(?:学堂)?.*$/i, '').trim();
+
+    // 移除日期：2026-09-14, 2026/09/14, 2026.09.14, 26-09-14, 20260914 等
+    clean = clean.replace(/[-_\\s]*(?:20\\d{2}[-\\/.\\]\\d{1,2}[-\\/.\\]\\d{1,2}|\\d{2}[-\\/.\\]\\d{1,2}[-\\/.\\]\\d{1,2}|20\\d{6})[-_\\s]*/g, ' ').trim();
+
+    // 移除节次/课时：第1-2节, 第 1-3 节, 第1节, 1-2节, 第1-2讲, (1-2), （1-3节）等
+    clean = clean.replace(/[-_\\s]*第?\\s*\\d+(?:[-~至到]\\d+)?\\s*[节课时讲][-_\\s]*/g, ' ').trim();
+    clean = clean.replace(/[\\(（]\\s*(?:第?\\s*\\d+(?:[-~至到]\\d+)?\\s*[节课时讲]?|\\d+)\\s*[\\）\\)]/g, ' ').trim();
+
+    // 移除首尾多余的分隔符
+    clean = clean.replace(/^[-_\\s.,:：]+|[-_\\s.,:：]+$/g, '').trim();
+
+    if (isGenericSiteName(clean)) return '';
+    return clean;
+  }
+
+  // 递归/多层级深度检索对象中潜在的课程名字段
+  function findTitleInObj(obj) {
+    if (!obj) return '';
+    if (typeof obj === 'string') {
+      const c = cleanCourseName(obj);
+      if (c && !isGenericSiteName(c)) return c;
+      return '';
+    }
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findTitleInObj(item);
+        if (found) return found;
+      }
+      return '';
+    }
+    if (typeof obj === 'object') {
+      for (const k of ['course_title', 'course_name', 'courseName', 'subject_name', 'course_title_cn']) {
+        if (obj[k] && typeof obj[k] === 'string') {
+          const c = cleanCourseName(obj[k]);
+          if (c && !isGenericSiteName(c)) return c;
+        }
+      }
+      for (const k of ['data', 'list', 'rows', 'result']) {
+        if (obj[k]) {
+          const found = findTitleInObj(obj[k]);
+          if (found) return found;
+        }
+      }
+    }
+    return '';
+  }
+
   // ==========================================
   // 5. 课程与多视频（Mode B）课时探测
   // ==========================================
@@ -337,56 +414,94 @@
     let currentLessonTitle = '';
     let dateStr = null;
 
+    // 1. 尝试从课时详情接口获取
+    let subInfoData = null;
     try {
       const subInfoRes = await fetch('/courseapi/v3/portal-home-setting/get-sub-info?course_id=' + courseId + '&sub_id=' + subId, { credentials: 'include' }).then(r => r.json());
-      const data = subInfoRes?.data;
-      if (data) {
-        lecturerName = data.lecturer_name || '';
-        currentLessonTitle = data.sub_title || '';
-        dateStr = parseDateString(data.start_time || data.create_time || data.date || data.sub_title);
+      subInfoData = subInfoRes?.data;
+      if (subInfoData) {
+        lecturerName = subInfoData.lecturer_name || '';
+        currentLessonTitle = subInfoData.sub_title || subInfoData.title || '';
+        dateStr = parseDateString(subInfoData.start_time || subInfoData.create_time || subInfoData.date || subInfoData.sub_title || subInfoData.title);
+        courseName = findTitleInObj(subInfoData);
       }
     } catch (e) {}
 
+    // 2. 尝试从课程搜索接口获取课程全称
+    if (!courseName) {
+      try {
+        const courseTitleRes = await fetch('/courseapi/v3/multi-search/get-course-teacher-others?course_id=' + courseId + '&per_page=1', { credentials: 'include' }).then(r => r.json());
+        courseName = findTitleInObj(courseTitleRes);
+      } catch (e) {}
+    }
+
+    // 3. 尝试从课程目录接口获取
+    let allLessons = [];
     try {
-      const courseTitleRes = await fetch('/courseapi/v3/multi-search/get-course-teacher-others?course_id=' + courseId + '&per_page=1', { credentials: 'include' }).then(r => r.json());
-      courseName = courseTitleRes?.data?.[0]?.course_title || '';
+      const catRes = await fetch('/courseapi/v2/course/catalogue?course_id=' + courseId, { credentials: 'include' }).then(r => r.json());
+      if (!courseName) {
+        courseName = findTitleInObj(catRes?.result);
+      }
+      allLessons = catRes?.result?.data || [];
     } catch (e) {}
 
+    // 4. 从当前课时标题（如 "数据库系统2026-09-14第1-2节"）中智能剥离日期与节次提取课程名
+    if (!courseName && currentLessonTitle) {
+      courseName = cleanCourseName(currentLessonTitle);
+    }
+
+    // 5. 从浏览器 document.title 中提取
+    if (!courseName && document.title) {
+      courseName = cleanCourseName(document.title);
+    }
+
+    // 6. 从播放页 DOM 元素中提取（严格排除页面顶栏与导航栏中的平台标题）
     if (!courseName) {
-      const el = document.querySelector('.course-name, .title, h1');
-      if (el && el.innerText.trim()) courseName = el.innerText.trim();
+      const selectors = [
+        '.breadcrumb', '.el-breadcrumb', '.ant-breadcrumb',
+        '.course-title', '.cur-course', '.course-info .name',
+        '.video-title', '.lesson-title', '[class*="course-title"]', '[class*="course-name"]'
+      ];
+      for (const sel of selectors) {
+        const els = document.querySelectorAll(sel);
+        for (const el of els) {
+          if (el.closest('header, nav, .header, .navbar, .top-header, #header, #nav, #scut-bbt-root, .scut-bbt-card')) continue;
+          const text = el.innerText ? el.innerText.trim() : '';
+          const candidate = cleanCourseName(text);
+          if (candidate && !isGenericSiteName(candidate)) {
+            courseName = candidate;
+            break;
+          }
+        }
+        if (courseName) break;
+      }
     }
-    if (!currentLessonTitle) {
-      const el = document.querySelector('.video-name, .lesson-name, h2');
-      if (el && el.innerText.trim()) currentLessonTitle = el.innerText.trim();
-    }
+
+    // 7. 日期保底
     if (!dateStr) {
       dateStr = parseDateString(currentLessonTitle) || parseDateString(document.title) || formatYYMMDD(new Date());
     }
 
-    courseName = sanitizeFilename(courseName || '百步梯录播');
+    // 8. 课程名终极保底：使用课程ID（绝不使用平台公共标题）
+    courseName = sanitizeFilename(courseName || ('课程_' + courseId));
 
     // 获取课程目录，探测同天/同大排课的关联视频（B 模式：多视频自动对齐）
     let relatedLessons = [{ subId: String(subId), title: currentLessonTitle || ('第 ' + subId + ' 节') }];
-    try {
-      const catRes = await fetch('/courseapi/v2/course/catalogue?course_id=' + courseId, { credentials: 'include' }).then(r => r.json());
-      const allLessons = catRes?.result?.data || [];
-      if (Array.isArray(allLessons) && allLessons.length > 0) {
-        const matched = [];
-        for (const item of allLessons) {
-          const sid = String(item.sub_id || item.id || '');
-          const title = item.title || item.sub_title || '';
-          const itemDate = parseDateString(title) || parseDateString(item.start_time || item.create_time);
+    if (Array.isArray(allLessons) && allLessons.length > 0) {
+      const matched = [];
+      for (const item of allLessons) {
+        const sid = String(item.sub_id || item.id || '');
+        const title = item.title || item.sub_title || '';
+        const itemDate = parseDateString(title) || parseDateString(item.start_time || item.create_time);
 
-          if (sid === String(subId) || (dateStr && itemDate === dateStr)) {
-            matched.push({ subId: sid, title: title || ('第 ' + sid + ' 节') });
-          }
-        }
-        if (matched.length > 0) {
-          relatedLessons = matched;
+        if (sid === String(subId) || (dateStr && itemDate === dateStr)) {
+          matched.push({ subId: sid, title: title || ('第 ' + sid + ' 节') });
         }
       }
-    } catch (e) {}
+      if (matched.length > 0) {
+        relatedLessons = matched;
+      }
+    }
 
     return {
       courseId,
@@ -723,7 +838,7 @@
     }
 
     async function initCourseInfo() {
-      if (courseInfo) return;
+      if (courseInfo && courseInfo.courseName && !courseInfo.courseName.startsWith("课程_")) return;
       try {
         courseInfo = await resolveCourseInfo(courseId, subId);
         const relatedCount = courseInfo.relatedLessons.length;
