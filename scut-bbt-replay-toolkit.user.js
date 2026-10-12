@@ -9,10 +9,10 @@
 // @match        https://video-jw-443.webvpn.scut.edu.cn/*
 // @match        https://video-jw-scut-edu-cn-443.webvpn.scut.edu.cn/*
 // @icon         https://video.jw.scut.edu.cn/favicon.ico
-// @homepageURL  https://github.com/Tea0104/scut-bbt-replay-toolkit
-// @supportURL   https://github.com/Tea0104/scut-bbt-replay-toolkit/issues
-// @updateURL    https://raw.githubusercontent.com/Tea0104/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js
-// @downloadURL  https://raw.githubusercontent.com/Tea0104/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js
+// @homepageURL  https://github.com/Breeze1733/scut-bbt-replay-toolkit
+// @supportURL   https://github.com/Breeze1733/scut-bbt-replay-toolkit/issues
+// @updateURL    https://raw.githubusercontent.com/Breeze1733/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js
+// @downloadURL  https://raw.githubusercontent.com/Breeze1733/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue

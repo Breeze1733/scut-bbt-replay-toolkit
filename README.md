@@ -14,9 +14,9 @@ v2.1 新增可选的**字幕校准**：配置一次模型 API，一键读取当�
 
 无需配置任何编译环境，只要浏览器装有油猴扩展，点击下方按钮即可一键安装：
 
-[![一键安装 - GitHub 官方源](https://img.shields.io/badge/一键安装-GitHub%20官方源-00485B?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/Tea0104/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js)
+[![一键安装 - GitHub 官方源](https://img.shields.io/badge/一键安装-GitHub%20官方源-00485B?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/Breeze1733/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js)
 
-[![国内镜像 - 一键安装](https://img.shields.io/badge/国内镜像-一键安装%20(推荐国内网络)-FF5627?style=for-the-badge&logo=jsdelivr&logoColor=white)](https://cdn.jsdelivr.net/gh/Tea0104/scut-bbt-replay-toolkit@main/scut-bbt-replay-toolkit.user.js)
+[![国内镜像 - 一键安装](https://img.shields.io/badge/国内镜像-一键安装%20(推荐国内网络)-FF5627?style=for-the-badge&logo=jsdelivr&logoColor=white)](https://cdn.jsdelivr.net/gh/Breeze1733/scut-bbt-replay-toolkit@main/scut-bbt-replay-toolkit.user.js)
 
 > 💡 **提示**：如果点击 GitHub 官方源无法打开或加载缓慢，请直接点击 **【国内镜像一键安装】**（基于 jsDelivr CDN 加速）。
 
