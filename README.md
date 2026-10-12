@@ -4,6 +4,8 @@
 
 一键提取并导出高清课件 PPT (PDF)、纯文本字幕 (TXT)、时间轴字幕 (SRT)、原始字幕 (JSON)，支持多视频智能拼接与一键打包 ZIP 下载。
 
+v2.1 新增可选的**字幕校准**：配置一次模型 API，一键读取当前课程字幕和课件，自动校准并下载 TXT。无需导出再导入文件，无需启动本地服务。
+
 **如果您觉得本项目有用，请给这个项目一个 Star ⭐**
 
 ---
@@ -12,9 +14,9 @@
 
 无需配置任何编译环境，只要浏览器装有油猴扩展，点击下方按钮即可一键安装：
 
-[![一键安装 - GitHub 官方源](https://img.shields.io/badge/一键安装-GitHub%20官方源-00485B?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/Breeze1733/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js)
+[![一键安装 - GitHub 官方源](https://img.shields.io/badge/一键安装-GitHub%20官方源-00485B?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/Tea0104/scut-bbt-replay-toolkit/main/scut-bbt-replay-toolkit.user.js)
 
-[![国内镜像 - 一键安装](https://img.shields.io/badge/国内镜像-一键安装%20(推荐国内网络)-FF5627?style=for-the-badge&logo=jsdelivr&logoColor=white)](https://cdn.jsdelivr.net/gh/Breeze1733/scut-bbt-replay-toolkit@main/scut-bbt-replay-toolkit.user.js)
+[![国内镜像 - 一键安装](https://img.shields.io/badge/国内镜像-一键安装%20(推荐国内网络)-FF5627?style=for-the-badge&logo=jsdelivr&logoColor=white)](https://cdn.jsdelivr.net/gh/Tea0104/scut-bbt-replay-toolkit@main/scut-bbt-replay-toolkit.user.js)
 
 > 💡 **提示**：如果点击 GitHub 官方源无法打开或加载缓慢，请直接点击 **【国内镜像一键安装】**（基于 jsDelivr CDN 加速）。
 
@@ -60,10 +62,25 @@
 
 ---
 
+## 校准字幕
+
+工具箱新增一行 **校准字幕 (TXT)**。点击 **下载校准字幕**，等待处理完毕后自动下载一个 `_校准.txt` 文件。
+
+首次使用时填写 API 地址、模型名和 Key，保存后自动开始。配置会保存在本机脚本管理器中，以后直接点击下载即可；旁边的设置图标可随时修改。未配置模型时，原始资料下载仍照常可用。
+
+- 支持 Chat Completions 兼容接口，例如 `https://你的服务/v1` 或完整的 `/chat/completions` 地址。
+- 默认参考课件，需要支持图片的模型；纯文本模型可在设置中关闭课件参考。
+- 结合课程名称、上下文和课件，主动纠正同音错字、英文术语和符号读法。后台按小段校对，只应用能定位到原文的局部修改，保留讲解顺序、例子和推导，不做摘要。对明显不合规则的修改保留原文，模型仍可能误判。
+- 校准时字幕、课程名和所选课件会发送至配置的 API，可能产生费用。Key 保存在脚本管理器存储中，不进入导出文件；清空 Key 并保存即可删除。
+- 请求失败后再次点击下载，可在当前页面继续处理。刷新会丢失处理进度；同一页面重复下载完成的结果不会再次调用模型。
+- 自选 API 使用 `GM_xmlhttpRequest` 和 `@connect *`，更新脚本时可能需要允许新增权限。API 需 HTTPS，本机服务可用 HTTP。
+
+---
+
 ## 免责声明
 
 1. 如果你成功运行了该软件，即代表你拥有访问华工百步梯学堂该门课程录播的合法学生权限；
-2. 本软件仅通过网页公开合规的接口获取当前课程的 PPT 图像与字幕，纯本地内存拼装，不会越权读取系统数据，更不会向任何第三方服务器上传任何数据；
+2. 原始资料导出通过当前登录会话获取 PPT 图像与字幕，在本地内存拼装。可选的字幕校订会将相关资料发送到用户自行配置的模型 API，请在使用前确认该服务的数据处理方式及课件使用权限；
 3. 本软件仅供华南理工大学校友个人课后复习、整理课堂笔记学习使用，请尊重教师的教学劳动成果与课件版权，请勿将导出的课件用于商业牟利或恶意传播；
 4. 资料导出只是帮你节省了截图翻页与手工摘录的机械劳动，最重要的还是认真听讲、理解消化知识。
 
