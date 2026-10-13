@@ -1443,7 +1443,7 @@
     document.head.appendChild(style);
     const row = document.createElement('div');
     row.className = 'scut-bbt-row';
-    row.innerHTML = '<span class="scut-bbt-row-left">校准字幕 (TXT)</span><div class="scut-bbt-row-right"><button class="scut-bbt-btn-single" data-action="run">下载校准字幕</button><button class="bbt-settings-toggle" data-action="settings" title="模型设置" aria-label="模型设置">&#9881;</button></div>';
+    row.innerHTML = '<span class="scut-bbt-row-left">校准字幕 (TXT)</span><div class="scut-bbt-row-right"><button class="scut-bbt-btn-single" data-action="run">下载校准字幕</button><button class="scut-bbt-btn-single" data-action="stop" hidden>停止</button><button class="bbt-settings-toggle" data-action="settings" title="模型设置" aria-label="模型设置">&#9881;</button></div>';
     root.querySelector('.scut-bbt-body').appendChild(row);
     const partial = document.createElement('button');
     partial.className = 'scut-bbt-btn-single'; partial.textContent = '下载已完成部分'; partial.hidden = true;
@@ -1489,6 +1489,8 @@
     function busy(value) {
       action('run').disabled = value;
       action('run').textContent = value ? '校准中…' : '下载校准字幕';
+      action('stop').hidden = !value;
+      action('stop').disabled = !value;
       action('settings').disabled = value;
       form.querySelector('fieldset').disabled = value;
       partial.hidden = value || !session?.completedIds.size || session.done;
@@ -1496,6 +1498,12 @@
         button.disabled = value;
       }
     }
+    action('stop').onclick = () => {
+      if (!controller) return;
+      action('stop').disabled = true;
+      status('正在停止校准…');
+      controller.abort();
+    };
     action('settings').onclick = () => { pendingDownload = false; form.hidden = !form.hidden; };
     form.onsubmit = event => {
       event.preventDefault();
