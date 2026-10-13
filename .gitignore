@@ -4,3 +4,12 @@ Thumbs.db
 .vscode/
 .idea/
 dist/
+node_modules/
+test-results/
+
+# Local course samples and development harness
+/docs/
+/dev/
+/tests/
+/package.json
+/package-lock.json
